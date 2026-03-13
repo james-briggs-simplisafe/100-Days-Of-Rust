@@ -1,50 +1,81 @@
-use core::panic;
 use std::collections::HashMap;
+use lazy_static::lazy_static;
 
-pub fn letter_combinations_of_phone_number(number: &str) {
-    let digit_maps = HashMap::<char, &'static str>::from(
-        [
-            ('2', "abc"),
-            ('3', "def"),
-            ('4', "ghi"),
-            ('5', "jkl"),
-            ('6', "mno"),
-            ('7', "pqrs"),
-            ('8', "tuv"),
-            ('9', "wxyz"),
-        ]
-    );
+lazy_static! {
+    static ref DIGIT_TO_LETTERS: HashMap::<char, &'static str> = {
+        HashMap::<char, &'static str>::from(
+            [
+                ('2', "abc"),
+                ('3', "def"),
+                ('4', "ghi"),
+                ('5', "jkl"),
+                ('6', "mno"),
+                ('7', "pqrs"),
+                ('8', "tuv"),
+                ('9', "wxyz"),
+            ]
+        )
+    };
+}
 
-    let generating_strings = number.chars().map(|ch| {
-        digit_maps.get(&ch).expect("Should be digits 2-9.")
-    }).collect::<Vec<&&str>>();
+pub struct PhoneNumberLetterCombos {
+    string_options: Vec<&'static&'static str>,
+    counters: Vec<usize>,
+    exhausted: bool,
+}
 
-    println!("{:?}", generating_strings);
+impl PhoneNumberLetterCombos {
+    pub fn from_string(s: &str) -> Self {
+        let string_options = s.chars().map(|ch| {
+            DIGIT_TO_LETTERS.get(&ch).expect("Should be digits 2-9.")
+        }).collect::<Vec<&&str>>();
+        let counters = vec![0; string_options.len()];
+        PhoneNumberLetterCombos {
+            string_options,
+            counters,
+            exhausted: false,
+        }
+    }
+}
 
-    let mut counters = vec![0; generating_strings.len()];
-    
-    loop {
+impl Iterator for PhoneNumberLetterCombos {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.exhausted {
+            return None
+        }
+
         let mut next_string = String::new();
-        for i in 0..generating_strings.len() {
+    
+        for i in 0..self.string_options.len() {
             next_string.push(
-                generating_strings[i]
+                self.string_options[i]
                 .chars()
-                .nth(counters[i])
+                .nth(self.counters[i])
                 .expect("index defined as less than length")
             );
-        }
-        println!("{}", next_string);
-        for i in (0..counters.len()).rev() {
-            counters[i] += 1;
-            if counters[i] >= generating_strings[i].len() {
-                counters[i] = 0;
+        };
+
+        for i in (0..self.counters.len()).rev() {
+            self.counters[i] += 1;
+            if self.counters[i] >= self.string_options[i].len() {
+                self.counters[i] = 0;
             } else {
                 break;
             }
         }
-        if (counters.iter().all(|x|{*x == 0})) {
-            break;
+        
+        if self.counters.iter().all(|x|{*x == 0}) {
+            self.exhausted = true;
         }
+
+        if !next_string.is_empty() {
+            Some(next_string)
+        } else {
+            None
+        }
+        
     }
 
 }
@@ -54,8 +85,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        letter_combinations_of_phone_number("23");
-        assert!(false);
+    fn test_23() {
+        let actual: Vec<String> = PhoneNumberLetterCombos::from_string("23").collect();
+        let expected: Vec<&str> = vec!["ad","ae","af","bd","be","bf","cd","ce","cf"];
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_empty() {
+        let actual: Vec<String> = PhoneNumberLetterCombos::from_string("").collect();
+        let expected: Vec<&str> = vec![];
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_2() {
+        let actual: Vec<String> = PhoneNumberLetterCombos::from_string("2").collect();
+        let expected: Vec<&str> = vec!["a","b","c"];
+        assert_eq!(actual, expected);
     }
 }
